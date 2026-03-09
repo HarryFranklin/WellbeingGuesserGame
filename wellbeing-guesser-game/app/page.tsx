@@ -1,94 +1,137 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 /**
  * Wellbeing Guesser Game - PhD Research Tool
- * Includes: Home, Quiz (3 questions), Game (3 rounds with feedback), and Debrief.
+ * Part 1: Initial preference assessment (0 pts)
+ * Part 2: Interactive decision-making game (Scoring)
+ * Part 3: Final debrief and results summary
  */
 export default function WellbeingGame() {
-  // Navigation and Progress State
+  // Navigation State
   const [stage, setStage] = useState<'HOME' | 'QUIZ' | 'GAME' | 'DEBRIEF'>('HOME');
   const [currentStep, setCurrentStep] = useState<number>(1);
 
-  // Data and Scoring State
-  const [quizScore, setQuizScore] = useState<number>(0);
+  // Research Data & Scoring State
+  const [quizPreferences, setQuizPreferences] = useState<string[]>([]);
+  const [generatedValue, setGeneratedValue] = useState<number | null>(null);
   const [gameScore, setGameScore] = useState<number>(0);
 
-  // Game Logic State
-  const [selectedOption, setSelectedOption] = useState<'A' | 'B' | null>(null);
+  // Interaction State (Shared by Quiz and Game)
+  const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [showFeedback, setShowFeedback] = useState<boolean>(false);
   const [isCorrect, setIsCorrect] = useState<boolean>(false);
 
-  // Constants
   const MAX_QUIZ_QUESTIONS = 3;
   const MAX_GAME_ROUNDS = 3;
 
+  /**
+   * DEBUG GENERATOR: 
+   * Triggers once when moving to the GAME stage to simulate profile generation.
+   */
+  useEffect(() => {
+    if (stage === 'GAME' && generatedValue === null) {
+      const debugValue = Math.floor(Math.random() * 100) + 1;
+      setGeneratedValue(debugValue);
+    }
+  }, [stage, generatedValue]);
+
   // --- STAGE 0: HOME ---
   const HomeStage = () => (
-    <div className="flex flex-col items-center text-center gap-6 max-w-2xl">
-      <h2 className="text-3xl font-semibold text-white">Welcome to the Study</h2>
-      <p className="text-gray-400 leading-relaxed">
-        This application is part of a Computer Science PhD research project into digital wellbeing. 
-        You will complete a short 3-question quiz, followed by a 3-round interactive game.
-      </p>
+    <div className="flex flex-col items-center text-center gap-8 max-w-2xl">
+      <div className="space-y-2">
+        <h1 className="text-4xl font-bold text-white tracking-tight">Wellbeing Research Study</h1>
+        <p className="text-blue-400 font-mono text-sm uppercase tracking-widest">Computer Science PhD Project</p>
+      </div>
+      
+      <div className="space-y-4 text-gray-400 leading-relaxed">
+        <p>
+          Thank you for participating in this study exploring wellbeing.
+          The session consists of three main parts:
+        </p>
+        <ul className="text-sm space-y-2 inline-block text-left list-disc list-inside">
+          <li>Part 1: Initial preference assessment</li>
+          <li>Part 2: Interactive decision-making game</li>
+          <li>Part 3: Final debrief and results summary</li>
+        </ul>
+      </div>
+
       <button 
         onClick={() => setStage('QUIZ')}
-        className="px-8 py-3 bg-white text-black font-bold rounded-full hover:bg-gray-200 transition-colors"
+        className="mt-4 px-10 py-4 bg-white text-black font-bold rounded-full hover:bg-gray-200 transition-all shadow-lg hover:shadow-white/10"
       >
-        Start Experiment
+        Enter Study
       </button>
     </div>
   );
 
-  // --- STAGE 1: QUIZ ---
+  // --- STAGE 1: QUIZ (0 POINTS + SUBMIT BUTTON) ---
   const QuizStage = () => {
-    const handleNext = () => {
-      setQuizScore(prev => prev + 5); // Placeholder calculation for quiz weighting
+    const handleQuizSubmit = () => {
+      if (!selectedOption) return;
+      
+      setQuizPreferences(prev => [...prev, selectedOption]);
+      setSelectedOption(null); // Reset for next question
+
       if (currentStep < MAX_QUIZ_QUESTIONS) {
         setCurrentStep(currentStep + 1);
       } else {
-        setCurrentStep(1); // Reset step counter for the Game stage
+        setCurrentStep(1);
         setStage('GAME');
       }
     };
 
     return (
-      <div className="flex flex-col items-center gap-6">
-        <span className="text-blue-500 font-mono text-sm">Question {currentStep} of {MAX_QUIZ_QUESTIONS}</span>
-        <h2 className="text-2xl font-semibold text-white">Wellbeing Assessment</h2>
-        <div className="w-64 h-40 bg-gray-800 flex items-center justify-center text-gray-500 border border-gray-700 italic">
-          [Research Graphic {currentStep}]
+      <div className="flex flex-col items-center gap-8 w-full max-w-md">
+        <div className="text-center">
+          <span className="text-gray-500 font-mono text-xs uppercase tracking-widest">Part 1: Assessment</span>
+          <h2 className="text-2xl font-semibold text-white mt-2">Preference {currentStep} of {MAX_QUIZ_QUESTIONS}</h2>
         </div>
-        <ul className="grid grid-cols-1 gap-3 w-full max-w-md">
-          {['Definitely', 'Probably', 'Probably Not', 'Definitely Not'].map((opt) => (
+
+        <div className="grid grid-cols-1 gap-3 w-full">
+          {['Option A', 'Option B', 'Option C'].map((opt) => (
             <button 
               key={opt}
-              onClick={handleNext}
-              className="p-3 bg-gray-900 border border-gray-700 text-white rounded hover:border-blue-500 transition-all text-center"
+              onClick={() => setSelectedOption(opt)}
+              className={`p-5 border-2 rounded-2xl transition-all text-left font-medium
+                ${selectedOption === opt 
+                  ? 'border-blue-500 bg-gray-800 text-white' 
+                  : 'border-gray-800 bg-gray-900 text-gray-400 hover:border-gray-700'}
+              `}
             >
               {opt}
             </button>
           ))}
-        </ul>
+        </div>
+
+        <button 
+          onClick={handleQuizSubmit}
+          disabled={!selectedOption}
+          className={`w-full py-4 rounded-full font-bold uppercase tracking-widest transition-all
+            ${selectedOption 
+              ? 'bg-blue-600 text-white hover:bg-blue-500' 
+              : 'bg-gray-800 text-gray-600 cursor-not-allowed'}
+          `}
+        >
+          Submit Preference
+        </button>
       </div>
     );
   };
 
-  // --- STAGE 2: GAME ---
+  // --- STAGE 2: GAME (SCORE ONLY FROM GAME CHOICES) ---
   const GameStage = () => {
-    const correctAnswer = 'A'; // Placeholder logic: Option A is always "correct"
+    const correctAnswer = 'B';
 
     const handleVerify = () => {
       const win = selectedOption === correctAnswer;
       setIsCorrect(win);
       setShowFeedback(true);
-      if (win) {
-        setGameScore(prev => prev + 10);
-      }
+      if (win) setGameScore(prev => prev + 10);
     };
 
-    const handleNextRound = () => {
+    const handleNext = () => {
       setSelectedOption(null);
       setShowFeedback(false);
       if (currentStep < MAX_GAME_ROUNDS) {
@@ -99,29 +142,30 @@ export default function WellbeingGame() {
     };
 
     return (
-      <div className="relative flex flex-col items-center gap-6 w-full max-w-2xl">
-        {/* HUD: Top Right Score */}
-        <div className="absolute -top-16 right-0 bg-gray-900 p-3 rounded-lg border border-blue-500 text-white font-mono shadow-lg">
-          Total Score: {gameScore + quizScore}
+      <div className="relative flex flex-col items-center gap-8 w-full max-w-2xl">
+        <div className="absolute -top-16 right-0 bg-gray-900 px-4 py-2 rounded-lg border border-blue-500 text-white font-mono shadow-lg">
+          SCORE: {gameScore}
         </div>
 
-        <span className="text-green-500 font-mono text-sm">Round {currentStep} of {MAX_GAME_ROUNDS}</span>
-        <h2 className="text-2xl font-semibold text-white">The Guesser Game</h2>
+        <div className="text-center">
+          <span className="text-gray-500 font-mono text-xs uppercase tracking-widest">Part 2: Interactive Task</span>
+          <h2 className="text-2xl font-semibold text-white mt-2">Round {currentStep} of {MAX_GAME_ROUNDS}</h2>
+        </div>
         
-        <div className="flex gap-6 w-full h-64">
-          {['A', 'B'].map((type) => (
+        <div className="flex gap-4 w-full h-56">
+          {['A', 'B'].map((choice) => (
             <button 
-              key={type}
+              key={choice}
               disabled={showFeedback}
-              onClick={() => setSelectedOption(type as 'A' | 'B')}
-              className={`relative flex-1 bg-gray-800 border-2 rounded-xl transition-all flex items-center justify-center text-white text-lg 
-                ${selectedOption === type ? 'border-blue-500 bg-gray-700' : 'border-gray-700 hover:border-gray-500'}
-                ${showFeedback && type === selectedOption ? (isCorrect ? 'border-green-500' : 'border-red-500') : ''}
+              onClick={() => setSelectedOption(choice)}
+              className={`relative flex-1 rounded-3xl border-2 transition-all flex items-center justify-center text-5xl font-black text-white
+                ${selectedOption === choice ? 'border-blue-500 bg-gray-800' : 'border-gray-800 bg-gray-900 hover:border-gray-700'}
+                ${showFeedback && choice === selectedOption ? (isCorrect ? 'border-green-500' : 'border-red-500') : ''}
               `}
             >
-              [Image {type}]
-              {showFeedback && selectedOption === type && (
-                <div className={`absolute top-2 right-2 w-8 h-8 rounded-full flex items-center justify-center font-bold text-white
+              {choice}
+              {showFeedback && selectedOption === choice && (
+                <div className={`absolute -top-3 -right-3 w-12 h-12 rounded-full flex items-center justify-center text-white shadow-2xl
                   ${isCorrect ? 'bg-green-500' : 'bg-red-500'}`}>
                   {isCorrect ? '✓' : '✕'}
                 </div>
@@ -130,33 +174,37 @@ export default function WellbeingGame() {
           ))}
         </div>
 
-        <div className="flex flex-col items-center gap-4 mt-4 h-24">
+        <div className="h-32 flex flex-col items-center justify-center w-full">
           {!showFeedback ? (
             <button 
-              onClick={handleVerify}
-              disabled={!selectedOption}
-              className={`px-10 py-3 rounded-full font-bold transition-all
-                ${selectedOption ? 'bg-blue-600 text-white hover:bg-blue-500' : 'bg-gray-800 text-gray-500 cursor-not-allowed'}
+              onClick={handleVerify} 
+              disabled={!selectedOption} 
+              className={`px-14 py-4 rounded-full font-bold uppercase tracking-widest transition-all
+                ${selectedOption ? 'bg-blue-600 text-white hover:bg-blue-500 shadow-lg' : 'bg-gray-800 text-gray-600 cursor-not-allowed'}
               `}
             >
               Submit Answer
             </button>
           ) : (
-            <div className="flex flex-col items-center">
-              <p className={`text-lg font-bold ${isCorrect ? 'text-green-400' : 'text-red-400'}`}>
-                {isCorrect ? 'You chose correctly!' : 'You chose incorrectly.'}
+            <div className="text-center animate-in fade-in slide-in-from-bottom-2">
+              <p className={`text-xl font-black ${isCorrect ? 'text-green-400' : 'text-red-400'}`}>
+                {isCorrect ? 'SUCCESS' : 'INCORRECT'}
               </p>
-              <p className="text-white font-mono text-xl">
+              <p className="text-white font-mono text-2xl mt-1">
                 {isCorrect ? '+10 POINTS' : '+0 POINTS'}
               </p>
               <button 
-                onClick={handleNextRound}
-                className="mt-2 text-blue-400 underline hover:text-blue-300"
+                onClick={handleNext} 
+                className="mt-4 px-8 py-2 bg-white/10 hover:bg-white/20 text-white text-xs rounded-full transition-colors uppercase font-bold"
               >
-                {currentStep < MAX_GAME_ROUNDS ? 'Next Round' : 'See Final Results'}
+                Continue
               </button>
             </div>
           )}
+        </div>
+
+        <div className="mt-8 p-3 bg-white/5 border border-white/10 rounded-lg text-gray-500 font-mono text-[10px] text-center w-full">
+          RESEARCH DEBUG | PROFILE ID: <span className="text-white font-bold">{generatedValue ?? '...'}</span> | PREFS LOGGED: {quizPreferences.length}
         </div>
       </div>
     );
@@ -164,19 +212,15 @@ export default function WellbeingGame() {
 
   // --- STAGE 3: DEBRIEF ---
   const DebriefStage = () => (
-    <div className="flex flex-col items-center text-center gap-6">
-      <h2 className="text-3xl font-semibold text-white">Final Report</h2>
-      <div className="p-6 bg-gray-900 border border-gray-800 rounded-lg">
-        <p className="text-white text-xl">Final Score: {gameScore + quizScore}</p>
-        <p className="text-gray-500 mt-2">Quiz Contribution: {quizScore}</p>
-        <p className="text-gray-500">Game Contribution: {gameScore}</p>
+    <div className="flex flex-col items-center text-center gap-8">
+      <h2 className="text-4xl font-bold text-white tracking-tight">Study Complete</h2>
+      <div className="bg-gray-900 p-10 rounded-3xl border border-gray-800 w-full max-w-sm shadow-2xl text-center">
+        <p className="text-blue-400 text-[10px] uppercase font-bold tracking-widest mb-2">Final Game Score</p>
+        <p className="text-7xl text-white font-black">{gameScore}</p>
       </div>
-      <p className="max-w-md text-gray-400 italic">
-        "Thank you for participating. This data will be used for academic analysis."
-      </p>
       <button 
         onClick={() => window.location.reload()} 
-        className="mt-4 text-sm text-gray-600 hover:text-gray-400 underline"
+        className="text-gray-600 hover:text-white text-xs transition-colors underline underline-offset-8"
       >
         Restart Session
       </button>
@@ -184,24 +228,13 @@ export default function WellbeingGame() {
   );
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center bg-black p-24">
-      {/* Global Progress Bar (Hidden on Home) */}
-      {stage !== 'HOME' && (
-        <div className="mb-12 w-full max-w-md">
-          <div className="h-1.5 w-full bg-gray-800 rounded-full overflow-hidden">
-            <div 
-              className="h-full bg-blue-500 transition-all duration-700 ease-in-out" 
-              style={{ width: stage === 'QUIZ' ? '33%' : stage === 'GAME' ? '66%' : '100%' }}
-            />
-          </div>
-        </div>
-      )}
-
-      {/* Stage Rendering */}
-      {stage === 'HOME' && <HomeStage />}
-      {stage === 'QUIZ' && <QuizStage />}
-      {stage === 'GAME' && <GameStage />}
-      {stage === 'DEBRIEF' && <DebriefStage />}
+    <main className="flex min-h-screen flex-col items-center justify-center bg-black p-24 font-sans selection:bg-blue-500/30">
+      <div className="w-full flex justify-center items-center">
+        {stage === 'HOME' && <HomeStage />}
+        {stage === 'QUIZ' && <QuizStage />}
+        {stage === 'GAME' && <GameStage />}
+        {stage === 'DEBRIEF' && <DebriefStage />}
+      </div>
     </main>
   );
 }
